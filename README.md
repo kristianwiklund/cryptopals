@@ -1,2 +1,5 @@
 # cryptopals
-cryptopals exercises
+cryptopals exercises, solved in Erlang
+
+https://cryptopals.com/
+
