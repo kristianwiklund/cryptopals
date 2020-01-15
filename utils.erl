@@ -1,6 +1,6 @@
 -module(utils).
 -include_lib("eunit/include/eunit.hrl").
--export([hex2b64/1,fxor/2,findxorkey/1]).
+-export([hex2b64/1,fxor/2,decryptxor/1]).
 
 fxor(From, What) ->
     T1 = list_to_integer(From, 16),
@@ -34,7 +34,7 @@ score(String) ->
 		end, 0, String).
 			
 
-findxorkey(Message) ->
+decryptxor(Message) ->
     M = h2s(Message),
     P = lists:map(fun(X) ->
 		      T = lists:map(fun(P) ->
@@ -46,7 +46,6 @@ findxorkey(Message) ->
     {_,[Decoded]}=lists:nth(1,lists:reverse(Q)),
     Decoded.
     
-
 hex2b64(From) ->
     T = binary:encode_unsigned(list_to_integer(From, 16)),
     base64:encode_to_string(T).
