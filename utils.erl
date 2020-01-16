@@ -1,10 +1,11 @@
 -module(utils).
 -include_lib("eunit/include/eunit.hrl").
--export([h2s/1,hex2b64/1,fxor/2,decryptxor/1,readfile/1, repxor/2, hammingdist/2, findkeysize/3]).
+-export([h2s/1,hex2b64/1,fxor/2,decryptxor/1,readfile/1, repxor/2, hammingdist/2, findkeysize/3, chunkify/2]).
+-export([shufflechunks/2]).
 
 rf(File) ->
     case file:read_line(File) of
-        {ok, Data} -> [Data | rf(File)];
+        {ok, Data} -> [string:trim(Data) | rf(File)];
         eof        -> []
     end.
 
@@ -129,19 +130,64 @@ hammingdist_test() ->
     37 = hammingdist("this is a test", "wokka wokka!!!").
 
 
+chunkify(Text, Size) when length(Text) >= Size ->
+    {T1,T2} = lists:split(Size, Text),
+    [T1|chunkify(T2,Size)];
+chunkify(_,_) ->
+    [].
+
+chunkify_test() ->
+    ["abcd","efgh","ijkl","mnop","qrst","uvwx"] = chunkify("abcdefghijklmnopqrstuvwxyz",4),
+    ["abc","def","ghi","jkl","mno","pqr","stu","vwx"] 
+	= chunkify("abcdefghijklmnopqrstuvwxyz",3).
+	 
+allhamming([S1,S2|Chunks],L,Acc) ->
+    Dist = hammingdist(S1,S2),
+    allhamming(Chunks, L, Acc+Dist);
+
+allhamming(_,L,Acc) ->
+    Acc.
+
+
 findkeysize(Text, [K|Eysize]) ->
     
-    {S1, T1} = lists:split(K, Text),
-    {S2, _} = lists:split(K, T1),
-    Dist = hammingdist(S1,S2),
-    io:fwrite("\"~s\" \"~s\" ~B\n", [S1,S2,Dist]),
-    [{K,Dist/K}|findkeysize(Text, Eysize)];
+    Chunks = chunkify(Text, K),
+    if 
+	length(Chunks)>1 ->
+	    Dist = allhamming(Chunks, length(Chunks), 0)/(length(Chunks)-1),
+%	    io:fwrite("\"~s\" \"~s\" ~B\n", [S1,S2,Dist]),
+	    [{K,Dist/K}|findkeysize(Text, Eysize)];
+	true ->
+	    []
+    end;
 
 findkeysize(_,[]) ->
     [].
 
+% swap around the string and make chunks created by picking items at distance Length
+shufflechunks(String, Length) ->
+    lists:map(fun(Y) ->
+			 lists:map(fun(X) ->
+					   lists:nth(X,String)
+				   end, lists:seq(Y,length(String),Length))
+		 end, lists:seq(1,Length)).
+
+
+shufflechunks_test() ->
+    ["147","258","369"] = shufflechunks("123456789",3).    
 
 findkeysize(Text, Low, High) ->
-    findkeysize(Text, lists:seq(Low, min(High,length(Text) div 2))).
+    lists:keysort(2,findkeysize(Text, lists:seq(Low, min(High,length(Text) div 2)))).
 
+% based on a priori knowledge of the answer for 1:6
+findkeysize_test() ->
+    Rawdata = utils:readfile("data1_6.txt"),
+    Text=lists:flatten(lists:map(fun(X) ->
+					 base64:decode_to_string(X) 
+				 end, Rawdata)),
+    {D1,D2} = lists:nth(1,utils:findkeysize(Text, 2,40)),
+    29 = D1. 
+
+
+    
 
