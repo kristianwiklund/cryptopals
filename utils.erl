@@ -1,6 +1,6 @@
 -module(utils).
 -include_lib("eunit/include/eunit.hrl").
--export([hex2b64/1,fxor/2,decryptxor/1,readfile/1, repxor/2, hammingdist/2]).
+-export([h2s/1,hex2b64/1,fxor/2,decryptxor/1,readfile/1, repxor/2, hammingdist/2, findkeysize/3]).
 
 rf(File) ->
     case file:read_line(File) of
@@ -98,22 +98,50 @@ a2int_test()->
     (48*256+49) = a2int("01").
 
 hammingdist(AS, BS) ->
-    A = a2int(AS),
-    B = a2int(BS),
-    ABin = integer_to_list(A,2),
-    BBin = integer_to_list(B,2),
-    T = lists:zipwith(fun(X,Y) ->
-			  X =/= Y
-		  end, ABin, BBin),
-    lists:foldl(fun(X, Acc) ->
-			if X ->
-				Acc+1;
-			   true ->
-				Acc
-			end
-		end, 0, T).
+    
+    if 
+	length(AS) == length(BS) ->
+	    A = a2int(AS),
+	    B = a2int(BS),
+	    %ABin = integer_to_list(A,2),
+	    %BBin = integer_to_list(B,2),
+	    L = length(AS)*8,
+	    ABin = lists:flatten(io_lib:format("~*.2.0B",[L,A])),
+	    BBin = lists:flatten(io_lib:format("~*.2.0B",[L,B])),
+%	    io:fwrite("~s ~s\n",[ABin,BBin]),
+	    
+	    T = lists:zipwith(fun(X,Y) ->
+				      X =/= Y
+			      end, ABin, BBin),
+	    lists:foldl(fun(X, Acc) ->
+				if X ->
+					Acc+1;
+				   true ->
+					Acc
+				end
+			end, 0, T);
+	true ->
+	    max(length(AS),length(BS))*8
+    end.
+
 
 hammingdist_test() ->
     37 = hammingdist("this is a test", "wokka wokka!!!").
+
+
+findkeysize(Text, [K|Eysize]) ->
+    
+    {S1, T1} = lists:split(K, Text),
+    {S2, _} = lists:split(K, T1),
+    Dist = hammingdist(S1,S2),
+    io:fwrite("\"~s\" \"~s\" ~B\n", [S1,S2,Dist]),
+    [{K,Dist/K}|findkeysize(Text, Eysize)];
+
+findkeysize(_,[]) ->
+    [].
+
+
+findkeysize(Text, Low, High) ->
+    findkeysize(Text, lists:seq(Low, min(High,length(Text) div 2))).
 
 
