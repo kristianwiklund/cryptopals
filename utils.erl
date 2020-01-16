@@ -1,7 +1,7 @@
 -module(utils).
 -include_lib("eunit/include/eunit.hrl").
 -export([h2s/1,hex2b64/1,fxor/2,decryptxor/1,decryptxor/2,readfile/1, repxor/2, hammingdist/2, findkeysize/3, chunkify/2]).
--export([shufflechunks/2]).
+-export([shufflechunks/2, decrypt_running_xor/1]).
 
 rf(File) ->
     case file:read_line(File) of
@@ -190,11 +190,10 @@ findkeysize_test() ->
     {D1,D2} = lists:nth(1,utils:findkeysize(Text, 2,40)),
     29 = D1. 
 
-
-decrypt_running_xor_test() ->
-    String = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal", 
-    P=repxor(String, "ICE"),
+decrypt_running_xor(P,hex) ->
     Q=h2s(P),
+    decrypt_running_xor(Q).
+decrypt_running_xor(Q) ->
     [{Size,_}|_]=utils:findkeysize(Q,2,22),
     Chunks = utils:shufflechunks(Q,Size),
     Candidates = lists:map(fun(X)->
@@ -202,6 +201,12 @@ decrypt_running_xor_test() ->
                            end, Chunks),
     FT=lists:map(fun({_,X})->X end, Candidates),
     F=lists:flatten(FT),
-    String=lists:flatten(utils:shufflechunks(F,length(lists:nth(1,FT)))).
+    lists:flatten(utils:shufflechunks(F,length(lists:nth(1,FT)))).    
+
+decrypt_running_xor_test() ->
+    String = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal", 
+    P=repxor(String, "ICE"),
+    String = decrypt_running_xor(P,hex).
+
     
 
