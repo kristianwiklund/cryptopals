@@ -1,6 +1,6 @@
 -module(utils).
 -include_lib("eunit/include/eunit.hrl").
--export([hex2b64/1,fxor/2,decryptxor/1,readfile/1, repxor/2]).
+-export([hex2b64/1,fxor/2,decryptxor/1,readfile/1, repxor/2, hammingdist/2]).
 
 rf(File) ->
     case file:read_line(File) of
@@ -84,4 +84,36 @@ repxor_test() ->
     P = [$0|integer_to_list(list_to_integer("0B3637272A2B2E63622C2E69692A23693A2A3C6324202D623D63343C2A26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f" ,16),16)],
     X = repxor("Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal", "ICE"),
     P=X.
+
+a2int([S|Tring],Acc) ->
+    a2int(Tring,256*Acc+S);
+a2int([],Acc) ->
+    Acc.
+a2int(String)->
+    a2int(String,0).
+
+a2int_test()->
+    0 = a2int(""),
+    32 = a2int(" "),
+    (48*256+49) = a2int("01").
+
+hammingdist(AS, BS) ->
+    A = a2int(AS),
+    B = a2int(BS),
+    ABin = integer_to_list(A,2),
+    BBin = integer_to_list(B,2),
+    T = lists:zipwith(fun(X,Y) ->
+			  X =/= Y
+		  end, ABin, BBin),
+    lists:foldl(fun(X, Acc) ->
+			if X ->
+				Acc+1;
+			   true ->
+				Acc
+			end
+		end, 0, T).
+
+hammingdist_test() ->
+    37 = hammingdist("this is a test", "wokka wokka!!!").
+
 
