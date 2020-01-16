@@ -1,6 +1,6 @@
 -module(utils).
 -include_lib("eunit/include/eunit.hrl").
--export([h2s/1,hex2b64/1,fxor/2,decryptxor/1,readfile/1, repxor/2, hammingdist/2, findkeysize/3, chunkify/2]).
+-export([h2s/1,hex2b64/1,fxor/2,decryptxor/1,decryptxor/2,readfile/1, repxor/2, hammingdist/2, findkeysize/3, chunkify/2]).
 -export([shufflechunks/2]).
 
 rf(File) ->
@@ -46,9 +46,11 @@ score(String) ->
 			end
 		end, 0, String).
 			
-
-decryptxor(Message) ->
+decryptxor(Message, hex) ->
     M = h2s(Message),
+    decryptxor(M).
+
+decryptxor(M) ->
     P = lists:map(fun(X) ->
 		      T = lists:map(fun(P) ->
 					    P bxor X
@@ -69,7 +71,7 @@ hex2b64_test() ->
 
 repxor([M|Essage], [K|Ey], Key)->
 %    io:fwrite("~s ^ ~s ~B\n",[[M],[K],M bxor K]),
-    [io_lib:format("~2.16.0B",[M bxor K]) | repxor(Essage, Ey, Key)];
+    [io_lib:format("~2.16.0B",[(M bxor K)]) | repxor(Essage, Ey, Key)];
 repxor([],_,_) ->
     "";
 repxor(Message,[],Key) ->
@@ -189,5 +191,17 @@ findkeysize_test() ->
     29 = D1. 
 
 
+decrypt_running_xor_test() ->
+    String = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal", 
+    P=repxor(String, "ICE"),
+    Q=h2s(P),
+    [{Size,_}|_]=utils:findkeysize(Q,2,22),
+    Chunks = utils:shufflechunks(Q,Size),
+    Candidates = lists:map(fun(X)->
+                      utils:decryptxor(X)
+                           end, Chunks),
+    FT=lists:map(fun({_,X})->X end, Candidates),
+    F=lists:flatten(FT),
+    String=lists:flatten(utils:shufflechunks(F,length(lists:nth(1,FT)))).
     
 

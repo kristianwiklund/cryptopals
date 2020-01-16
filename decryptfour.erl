@@ -4,7 +4,7 @@
 doit() ->
     Input=utils:readfile("data1_4.txt"),
     T=lists:map(fun(X)->
-		      utils:decryptxor(X)
+		      utils:decryptxor(X,hex)
 		end, Input),
     T2 = lists:keysort(1, T),
     T3 = lists:reverse(T2),
